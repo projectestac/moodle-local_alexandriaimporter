@@ -25,9 +25,9 @@
 
 $string['pluginname'] = 'Importador d\'Alexandria';
 
-$string['importfromalexandria'] = 'Importa des de Alexandria';
-$string['nodatabases'] = 'No hi ha bases de dades disponibles en aquest moment';
-$string['noresults'] = 'No s\'han trobat registres a la base de dades, canvia els paràmetres de cerca';
+$string['importfromalexandria'] = 'Importa des d\'Alexandria';
+$string['nodatabases'] = 'En aquests moments no hi ha bases de dades disponibles';
+$string['noresults'] = 'No s\'han trobat registres a la base de dades, canvieu els paràmetres de la cerca';
 $string['results'] = 'Resultats a {$a}';
 $string['course'] = 'cursos';
 $string['scorm'] = 'activitats SCORM';
