@@ -25,159 +25,151 @@
 
 /**
  * Render search form getting search templates from Alexandria
- * @param  Array  $dbs           Databases where to search
- * @param  int    $importcourse  CourseId where to import
- * @param  int    [$selected]    Database identifier where to get data from.
+ * @param  Array  $db            Database where to search
+ * @param  int    $searchurl     URL where to search.
+ * @param  int    [$selected]    If this is the current database selected to search in.
  * @return Array                 Fields submitted to search.
  */
-function render_alexandria_searchform($dbs, $importcourse, $selected = false) {
+function render_alexandria_searchform($db, $searchurl, $selected = false) {
     global $OUTPUT, $CFG;
 
     $searched = array();
 
-    $url = new moodle_url('/local/alexandriaimporter/search.php', array('id' => $importcourse));
+    echo '<div class="row-fluid">';
+    echo '<div class="span8"><h3 class="pull-left">'.core_text::strtotitle($db->searching).'</h3></div>';
 
-    echo '<div id="alexandria_restore"><ul  class="nav nav-tabs">';
-    foreach ($dbs as $db) {
-        if (!$selected || $db->id == $selected) {
-            echo '<li class="active">';
-            $selected = $db->id;
-        } else {
-            echo '<li>';
-        }
-        echo '<a href="#dbsel' . $db->id . '" data-toggle="tab">' . core_text::strtotitle($db->searching) . '</a></li>';
-    }
-    echo '</ul><div class="tab-content">';
-
-    $showadvanced = false;
-
-    foreach ($dbs as $db) {
-        if (!$selected || $db->id == $selected) {
-            echo '<div class="tab-pane active" id="dbsel'.$db->id . '">';
-            $selected = $db->id;
-        } else {
-            echo '<div class="tab-pane" id="dbsel'.$db->id . '">';
-        }
-        echo '<div class="row-fluid">';
-        echo '<div class="span8"><h3 class="pull-left">'.core_text::strtotitle($db->searching).'</h3></div>';
-
-        echo '<div class="span4 text-right">';
+    echo '<div class="span4 text-right">';
+    if (get_config('local_alexandriaimporter', 'show_description')) {
         echo '<p><a href="#dbmodal'.$db->id.'" role="button" data-toggle="modal">'.get_string('moreinfo').'</a></p>';
+    }
 
-        echo '<p class="pull-right showhideadv simple"><a href="#" role="button">'.get_string('showadvanced', 'local_alexandriaimporter').'</a></p>';
-        echo '<p class="pull-right showhideadv advanced"><a href="#" role="button">'.get_string('hideadvanced', 'local_alexandriaimporter').'</a></p>';
-        echo '</div></div>';
-        echo '<form class="form-search clearfix" method="POST" actio="'.$url->out_omit_querystring().'">';
-        $patterns = array();
-        $replacement = array();
-        // Then we generate strings to replace for normal tags.
-        foreach ($db->fields as $field) {
-            $fieldname = preg_quote($field->name, '/');
-            $pattern = "/\[\[$fieldname\]\]/i";
+    echo '<p class="pull-right showhideadv simple"><a href="#" role="button">'.get_string('showadvanced', 'local_alexandriaimporter').'</a></p>';
+    echo '<p class="pull-right showhideadv advanced"><a href="#" role="button">'.get_string('hideadvanced', 'local_alexandriaimporter').'</a></p>';
+    echo '</div></div>';
+    echo '<form class="form-search clearfix" method="POST" action="'.$searchurl->out().'">';
+    $patterns = array();
+    $replacement = array();
+    // Then we generate strings to replace for normal tags.
+    foreach ($db->fields as $field) {
+        $fieldname = preg_quote($field->name, '/');
+        $pattern = "/\[\[$fieldname\]\]/i";
 
-            // Only fields in template.
-            if (preg_match($pattern, $db->searchtemplate) > 0) {
-                $patterns[] = $pattern;
-                $fieldid = 'f_'.$field->id;
-                $value = $db->id == $selected ? optional_param($fieldid, "", PARAM_TEXT) : "";
-                $showadvanced = $showadvanced || !empty($value);
+        // Only fields in template.
+        if (preg_match($pattern, $db->searchtemplate) > 0) {
+            $patterns[] = $pattern;
+            $fieldid = 'f_'.$field->id;
+            $value = $selected ? optional_param($fieldid, "", PARAM_TEXT) : "";
 
-                if (!empty($value)) {
-                    $searched[$field->id] = $value;
-                }
+            if ($selected && !empty($value)) {
+                $searched[$field->id] = $value;
+            }
 
-                switch ($field->type) {
-                    case 'text':
-                    case 'textarea':
-                        $replacement[] = '<label class="accesshide" for="'.$fieldid.'">'. $field->name.'</label><input type="text" size="16" id="'.$fieldid.'" name="'.$fieldid.'" value="'.s($value).'" />';
-                        break;
-                    case 'multimenu':
-                    case 'menu':
-                        $replace = '<label class="accesshide" for="'.$fieldid.'">' . $field->name . '</label><select id="'.$fieldid.'" name="'.$fieldid.'"><option value=""></option>';
-                        foreach (explode("\n",$field->param1) as $option) {
-                            $option = trim($option);
-                            $replace .= '<option value="' . s($option) . '"';
+            switch ($field->type) {
+                case 'text':
+                case 'textarea':
+                    $replacement[] = '<label class="accesshide" for="'.$fieldid.'">'. $field->name.'</label><input type="text" size="16" id="'.$fieldid.'" name="'.$fieldid.'" value="'.s($value).'" />';
+                    break;
+                case 'multimenu':
+                case 'menu':
+                    $replace = '<label class="accesshide" for="'.$fieldid.'">' . $field->name . '</label><select id="'.$fieldid.'" name="'.$fieldid.'"><option value=""></option>';
+                    foreach (explode("\n",$field->param1) as $option) {
+                        $option = trim($option);
+                        $replace .= '<option value="' . s($option) . '"';
 
-                            if ($option == $value) {
-                                // Selected by user.
-                                $replace .= ' selected = "selected"';
-                            }
-                            $replace .= '>' . $option . '</option>';
+                        if ($option == $value) {
+                            // Selected by user.
+                            $replace .= ' selected = "selected"';
                         }
-                        $replace .= '</select>';
-                        $replacement[] = $replace;
-                        break;
-                }
+                        $replace .= '>' . $option . '</option>';
+                    }
+                    $replace .= '</select>';
+                    $replacement[] = $replace;
+                    break;
             }
         }
-
-        $value = !$showadvanced && $db->id == $selected ? optional_param('f_search', "", PARAM_TEXT) : "";
-
-        if (!empty($value)) {
-            $searched['search'] = $value;
-        }
-
-        // Hidden fields.
-        echo '<input type="hidden" name="dataid" value="'.$db->id.'"/>';
-        echo '<div class="simple control-group form-horizontal">
-                <label class="control-label" for="f_search"> '. get_string('search').'</label>
-                <div class="controls">
-                    <input type="text" size="16" id="f_search" name="f_search" value="'.s($value).'" />
-                </div>
-            </div>
-            <div class="simple control-group form-horizontal">
-                <div class="controls">
-                  <input type="submit" value="'.get_string('search').'"/>
-                </div>
-              </div>';
-
-        // Actual replacement of the tags.
-        echo '<div class="advanced">';
-        echo preg_replace($patterns, $replacement, $db->searchtemplate);
-        echo '<div class="text-center"><input type="submit" class="btn btn-active" value="'.get_string('search').'"/></div>';
-        echo '</div>';
-
-        echo '</form>';
-
-        echo '<div id="dbmodal'.$db->id.'" class="modal hide fade">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h3>'.$db->name.'</h3>
-          </div>
-          <div class="modal-body">'.$db->intro.'</div>
-        </div>';
-        echo '</div>';
     }
-    echo '</div></div>
-        <script type="text/javascript">
-            $(function() {
-                $(".showhideadv").click(function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggle_advanced(!$(".advanced").is(":visible"));
-                });
-                function toggle_advanced(advanced) {
-                    if (advanced) {
-                        $(".advanced").show();
-                        $(".advanced input").removeAttr("disabled");
-                        $(".advanced select").removeAttr("disabled");
-                        $(".simple").hide();
-                        $(".simple input").attr("disabled", "disabled");
-                        $(".simple select").attr("disabled", "disabled");
-                    } else {
-                        $(".simple").show();
-                        $(".simple input").removeAttr("disabled");
-                        $(".simple select").removeAttr("disabled");
-                        $(".advanced").hide();
-                        $(".advanced input").attr("disabled", "disabled");
-                        $(".advanced select").attr("disabled", "disabled");
-                    }
-                }
-                toggle_advanced('.$showadvanced.');
-            });
-        </script>';
+
+    $value = $selected && empty($searched) ? optional_param('f_search', "", PARAM_TEXT) : "";
+
+    if ($selected && !empty($value)) {
+        $searched['search'] = $value;
+    }
+
+    // Hidden fields.
+    echo '<input type="hidden" name="dataid" value="'.$db->id.'"/>';
+    echo '<div class="simple control-group form-horizontal">
+            <label class="control-label" for="f_search"> '. get_string('search').'</label>
+            <div class="controls">
+                <input type="text" size="16" id="f_search" name="f_search" value="'.s($value).'" />
+            </div>
+        </div>
+        <div class="simple control-group form-horizontal">
+            <div class="controls">
+              <input type="submit" value="'.get_string('search').'"/>
+            </div>
+          </div>';
+
+    // Actual replacement of the tags.
+    echo '<div class="advanced">';
+    echo preg_replace($patterns, $replacement, $db->searchtemplate);
+    echo '<div class="text-center"><input type="submit" class="btn btn-active" value="'.get_string('search').'"/></div>';
+    echo '</div>';
+
+    echo '</form>';
+
+    echo '<div id="dbmodal'.$db->id.'" class="modal hide fade">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3>'.$db->name.'</h3>
+      </div>
+      <div class="modal-body">'.$db->intro.'</div>
+    </div>';
 
     return $searched;
+}
+
+/**
+ * Render search results found.
+ * @param  Array  $data          Database where the search was performed
+ * @param  Array  $found         Results found.
+ * @param  int    $courseid      Course id where to import.
+ */
+function render_search_results($data, $found, $courseid) {
+    global $OUTPUT, $CFG;
+
+    echo $OUTPUT->heading(get_string('results', 'local_alexandriaimporter', $data->searching));
+    if (!isset($found->results) || count($found->results) == 0) {
+        echo $OUTPUT->notification(get_string('noresults', 'local_alexandriaimporter'), 'error');
+        return;
+    }
+
+    $url = new moodle_url('/local/alexandriaimporter/import.php',
+        array(
+            'id' => $courseid,
+            'datatype' => $data->type,
+            'fieldid' => $found->fieldid
+        )
+    );
+    echo '<div class="accordion" id="accordion">';
+    foreach ($found->results as $result) {
+        $url->param('recordid', $result->id);
+        $url->param('filename', $result->filename);
+        echo format_record_contents($result->content, $result->id, $url);
+    }
+    echo '</div>';
+
+    if ($found->moreresults) {
+        echo '<div class="hidden" id="search_values">';
+        foreach ($search as $name => $value) {
+             echo '<input type="hidden" name="'.$name.'" value="'.$value.'">';
+        }
+        echo '</div>';
+        echo '<button class="btn btn-info edit-btn" id="alexloadmore" onclick="alexandria_load_more(\''.$CFG->wwwroot.'\', '.$courseid.', '.$data->id.', \''.$data->type.'\')">
+            <span class="spinner"><i class="fa fa-spinner fa-spin fa-fw"></i></span>'
+            .get_string('loadmore', 'local_alexandriaimporter').'</button>';
+    }
+
+    echo '<script src="'.$CFG->wwwroot.'/local/alexandriaimporter/search.js"></script>';
 }
 
 /**
@@ -361,7 +353,7 @@ function alexandria_import_scorm($course, $filename, $name) {
     $scorm->intro = "";
     $scorm->introformat = FORMAT_MOODLE;
     $scorm->cmidnumber = null;
-    $scorm->visible = 0;
+    $scorm->visible = 1;
     $scorm->section = 0;
     $cfgscorm = get_config('scorm');
     $scorm->width = $cfgscorm->framewidth;
@@ -402,7 +394,7 @@ function alexandria_import_scorm($course, $filename, $name) {
  * @return Mixed            Data returned by the WS / error message.
  */
 function call_alexandria_ws($function, $params = array()) {
-    global $CFG;
+    global $CFG, $OUTPUT;
 
     require_once($CFG->dirroot . "/webservice/rest/lib.php");
     if (!alexandria_importer_is_enabled()) {
@@ -428,6 +420,9 @@ function call_alexandria_ws($function, $params = array()) {
         return $result;
     } catch (Exception $e) {
         $errormessage = $e->getMessage();
-        print_error($errormessage);
+        echo $OUTPUT->notification($errormessage, 'error');
+        // DEBUG
+        //print_object($e);
+        return false;
     }
 }

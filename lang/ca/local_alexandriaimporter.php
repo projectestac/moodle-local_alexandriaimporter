@@ -39,4 +39,6 @@ $string['loadmore'] = 'Busca\'n més';
 $string['alexandria_url'] = 'URL d\'Alexandria';
 $string['alexandria_token'] = 'Token d\'Alexandria';
 $string['alexandria_tokendesc'] = 'Paraula de pas per poder fer servir els serveis web remots. Pregunteu als administradors d\'Alexandria si no està configurat.';
+$string['showdescription'] = 'Mostra la descripció de la base de dades';
+$string['showdescriptiondesc'] = 'Al selector de base de dades mostra més informació de la selecció.';
 

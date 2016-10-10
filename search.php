@@ -63,55 +63,78 @@ if (count($dbs) <= 0) {
 }
 
 echo $OUTPUT->heading(get_string('importfromalexandria', 'local_alexandriaimporter'));
-echo $OUTPUT->container_start();
-$search = render_alexandria_searchform($dbs, $courseid, $dataid);
-echo $OUTPUT->container_end();
+echo $OUTPUT->container_start('', 'alexandria_restore');
 
-if ($dataid) {
-    $found = search_in_alexandria($dataid, $search);
-
-    if (!empty($found)) {
-        echo $OUTPUT->container_start();
-        $data = $dbs[$dataid];
-
-        echo $OUTPUT->heading(get_string('results', 'local_alexandriaimporter', $data->searching));
-        if (!isset($found->results) || count($found->results) == 0) {
-            echo $OUTPUT->notification(get_string('noresults', 'local_alexandriaimporter'), 'error');
-            echo $OUTPUT->container_end();
-            echo $OUTPUT->footer();
-            die();
-        }
-
-        $url = new moodle_url('/local/alexandriaimporter/import.php',
-            array(
-                'id' => $courseid,
-                'datatype' => $data->type,
-                'fieldid' => $found->fieldid
-            )
-        );
-        echo '<div class="accordion" id="accordion">';
-        foreach ($found->results as $result) {
-            $url->param('recordid', $result->id);
-            $url->param('filename', $result->filename);
-            echo format_record_contents($result->content, $result->id, $url);
-        }
-        echo '</div>';
-
-        if ($found->moreresults) {
-            echo '<div class="hidden" id="search_values">';
-            foreach ($search as $name => $value) {
-                 echo '<input type="hidden" name="'.$name.'" value="'.$value.'">';
-            }
-            echo '</div>';
-            echo '<button class="btn btn-info edit-btn" id="alexloadmore" onclick="alexandria_load_more(\''.$CFG->wwwroot.'\', '.$courseid.', '.$dataid.', \''.$data->type.'\')">
-                <span class="spinner"><i class="fa fa-spinner fa-spin fa-fw"></i></span>'
-                .get_string('loadmore', 'local_alexandriaimporter').'</button>';
-        }
-
-        echo '<script src="'.$CFG->wwwroot.'/local/alexandriaimporter/search.js"></script>';
-
-        echo $OUTPUT->container_end();
+// Echo tabs.
+echo '<ul  class="nav nav-tabs">';
+foreach ($dbs as $db) {
+    if (!$dataid || $db->id == $dataid) {
+        echo '<li class="active">';
+        $dataid = $db->id;
+    } else {
+        echo '<li>';
     }
+    echo '<a href="#dbsel' . $db->id . '" data-toggle="tab">' . core_text::strtotitle($db->searching) . '</a></li>';
 }
+echo '</ul><div class="tab-content">';
+
+$searchurl = new moodle_url('/local/alexandriaimporter/search.php', array('id' => $courseid));
+
+$selected = false;
+$showadvanced = false;
+
+// Echo tab contents.
+foreach ($dbs as $db) {
+    if ($db->id == $dataid) {
+        echo '<div class="tab-pane active" id="dbsel'.$db->id . '">';
+    } else {
+        echo '<div class="tab-pane" id="dbsel'.$db->id . '">';
+    }
+    $selected = ($dataid == $db->id);
+
+    $search = render_alexandria_searchform($db, $searchurl, $selected);
+    if ($selected && !empty($search)) {
+        $showadvanced = empty($search['search']);
+
+        $found = search_in_alexandria($db->id, $search);
+
+        if (!empty($found)) {
+            render_search_results($db, $found, $courseid);
+        }
+
+    }
+    echo '</div>';
+}
+
+echo '</div>
+    <script type="text/javascript">
+        $(function() {
+            $(".showhideadv").click(function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggle_advanced(!$(".advanced").is(":visible"));
+            });
+            function toggle_advanced(advanced) {
+                if (advanced) {
+                    $(".advanced").show();
+                    $(".advanced input").removeAttr("disabled");
+                    $(".advanced select").removeAttr("disabled");
+                    $(".simple").hide();
+                    $(".simple input").attr("disabled", "disabled");
+                    $(".simple select").attr("disabled", "disabled");
+                } else {
+                    $(".simple").show();
+                    $(".simple input").removeAttr("disabled");
+                    $(".simple select").removeAttr("disabled");
+                    $(".advanced").hide();
+                    $(".advanced input").attr("disabled", "disabled");
+                    $(".advanced select").attr("disabled", "disabled");
+                }
+            }
+            toggle_advanced('.$showadvanced.');
+        });
+    </script>';
+
+echo $OUTPUT->container_end();
 
 echo $OUTPUT->footer();

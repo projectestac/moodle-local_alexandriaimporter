@@ -39,3 +39,5 @@ $string['loadmore'] = 'Buscar más';
 $string['alexandria_url'] = 'URL de Alexandria';
 $string['alexandria_token'] = 'Token de Alexandria';
 $string['alexandria_tokendesc'] = 'Contraseña para poder usar los servicios web remotos. Preguntar a los administradores de Alexandria si no estan configurados.';
+$string['showdescription'] = 'Mostrar la descripción de la base de datos';
+$string['showdescriptiondesc'] = 'En el selector de bases de datos, mostrar más información de la selección.';

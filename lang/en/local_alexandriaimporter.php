@@ -39,3 +39,6 @@ $string['loadmore'] = 'Load more';
 $string['alexandria_url'] = 'Alexandria URL';
 $string['alexandria_token'] = 'Alexandria Token';
 $string['alexandria_tokendesc'] = 'Webservices token to use Alexandria remotely. Ask Alexandria admins if not configured.';
+$string['showdescription'] = 'Show database description';
+$string['showdescriptiondesc'] = 'When selecting database show more info about the selected database.';
+
