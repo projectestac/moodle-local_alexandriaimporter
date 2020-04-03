@@ -219,6 +219,11 @@ function alexandria_get_databases() {
     global $DB;
     $dbs = call_alexandria_ws('local_alexandria_get_databases');
     $return = array();
+
+    if (empty($dbs) || !count($dbs)) {
+        return $return;
+    }
+
     // Return only course and scorm databases.
     foreach ($dbs as $data) {
         switch ($data->type) {
